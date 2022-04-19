@@ -9,6 +9,7 @@ use fuzz_runner::nyx::aux_buffer::{
     NYX_SUCCESS, NYX_CRASH, NYX_TIMEOUT, NYX_INPUT_WRITE, NYX_ABORT,
     NYX_SANITIZER, NYX_STARVED
 };
+use fuzz_runner::nyx::qemu_process::QEMU_NYX_INPUT_BUFFER_HEADER;
 
 use std::fmt;
 
@@ -236,14 +237,32 @@ impl NyxProcess {
     }
     
     pub fn input_buffer(&self) -> &[u8] {
-        self.process.payload
+        &self.process.payload[..self.input_buffer_size()]
     }
     
     pub fn input_buffer_mut(&mut self) -> &mut [u8] {
-        self.process.payload
+        let input_buffer_size = self.input_buffer_size();
+        &mut self.process.payload[..input_buffer_size]
     }
 
-    pub fn input_buffer_size(&mut self) -> usize {
+    pub fn input_buffer_data(&self) -> &[u8] {
+        &self.process.payload[QEMU_NYX_INPUT_BUFFER_HEADER..self.input_buffer_size()]
+    }
+    
+    pub fn input_buffer_data_mut(&mut self) -> &mut [u8] {
+        let input_buffer_size = self.input_buffer_size();
+        &mut self.process.payload[QEMU_NYX_INPUT_BUFFER_HEADER..input_buffer_size]
+    }
+
+    pub fn input_buffer_size(&self) -> usize {
+        self.process.input_buffer_size
+    }
+
+    pub fn input_buffer_data_size(&self) -> usize {
+        self.process.payload.len() - QEMU_NYX_INPUT_BUFFER_HEADER
+    }
+
+    pub fn input_buffer_mmap_size(&self) -> usize {
         self.process.payload.len()
     }
     
@@ -328,7 +347,7 @@ impl NyxProcess {
     pub fn set_input_ptr(&mut self, buffer: *const u8, size: u32) {
         unsafe{
             std::ptr::copy(&size, self.process.payload.as_mut_ptr() as *mut u32, 1 as usize);
-            std::ptr::copy(buffer, self.process.payload[std::mem::size_of::<u32>()..].as_mut_ptr(), std::cmp::min(size as usize, self.input_buffer_size()));
+            std::ptr::copy(buffer, self.process.payload[QEMU_NYX_INPUT_BUFFER_HEADER..].as_mut_ptr(), std::cmp::min(size as usize, self.input_buffer_data_size()));
         }
     }
     

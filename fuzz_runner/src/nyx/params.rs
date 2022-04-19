@@ -1,5 +1,6 @@
 use crate::config::SnapshotPath;
 use crate::config::IptFilter;
+use crate::nyx::qemu_process::QEMU_NYX_INPUT_BUFFER_HEADER;
 
 pub struct KernelVmParams {
     pub qemu_binary: String,
@@ -97,7 +98,7 @@ impl QemuParams {
         cmd.push("-device".to_string());
         let mut nyx_ops = format!("nyx,chardev=nyx_interface");
         nyx_ops += &format!(",bitmap_size={}", params.bitmap_size);
-        nyx_ops += &format!(",input_buffer_size={}", params.input_buffer_size);
+        nyx_ops += &format!(",input_buffer_size={}", params.input_buffer_size + QEMU_NYX_INPUT_BUFFER_HEADER);
         nyx_ops += &format!(",worker_id={}", qemu_id);
         nyx_ops += &format!(",workdir={}", workdir);
         nyx_ops += &format!(",sharedir={}", params.sharedir);
@@ -204,7 +205,7 @@ impl QemuParams {
         cmd.push("-device".to_string());
         let mut nyx_ops = format!("nyx,chardev=nyx_interface");
         nyx_ops += &format!(",bitmap_size={}", params.bitmap_size);
-        nyx_ops += &format!(",input_buffer_size={}", params.input_buffer_size);
+        nyx_ops += &format!(",input_buffer_size={}", params.input_buffer_size + QEMU_NYX_INPUT_BUFFER_HEADER);
         nyx_ops += &format!(",worker_id={}", qemu_id);
         nyx_ops += &format!(",workdir={}", workdir);
         nyx_ops += &format!(",sharedir={}", params.sharedir);

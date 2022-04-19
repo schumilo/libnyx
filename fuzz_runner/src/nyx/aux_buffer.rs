@@ -26,8 +26,8 @@ pub const NYX_STARVED: u8       = 7;
 const AUX_BUFFER_SIZE: usize = 4096;
 
 const AUX_MAGIC: u64 = 0x54502d554d4551_u64;
-const QEMU_PT_VERSION: u16 = 3; /* let's start at 1 for the initial version using the aux buffer */
-const QEMU_PT_HASH: u16 = 84;
+const QEMU_PT_VERSION: u16 = 4; /* let's start at 1 for the initial version using the aux buffer */
+const QEMU_PT_HASH: u16 = 85;
 
 const HEADER_SIZE: usize = 128;
 const CAP_SIZE: usize = 256;
@@ -127,6 +127,7 @@ pub struct auxilary_buffer_cap_s {
     pub agent_input_buffer_size: u32,    /* agent requests a custom input buffer size (if the size is 0, the minimum buffer size is used) */
     pub agent_coverage_bitmap_size: u32,    /* agent requests a custom coverage bitmap size (if the size is 0, the minimum buffer size is used) */
 
+    pub agent_redqueen: u8,              /* agent implements its own redqueen tracer (such as AFL++ CMPLOG) */
 }
 #[derive(Debug, Copy, Clone)]
 #[repr(C, packed(1))]

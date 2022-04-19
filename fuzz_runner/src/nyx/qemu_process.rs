@@ -24,6 +24,7 @@ extern crate colored; // not needed in Rust 2018
 
 use colored::*;
 
+pub const QEMU_NYX_INPUT_BUFFER_HEADER: usize = 32;
 
 use crate::nyx::aux_buffer::AuxBuffer;
 use crate::nyx::aux_buffer::{
@@ -282,11 +283,14 @@ impl QemuProcess {
             }
         }
 
+        assert!(params.payload_size != 0);
+        assert!(params.payload_size != aux_buffer.cap.agent_input_buffer_size as usize);
+
         let mut input_buffer_size = params.payload_size as usize;
         if aux_buffer.cap.agent_input_buffer_size != 0 {
             input_buffer_size = aux_buffer.cap.agent_input_buffer_size as usize;
-            if aux_buffer.cap.agent_input_buffer_size as usize > payload_shared.len(){
-                payload_shared = make_shared_data(&payload_shm_f, aux_buffer.cap.agent_input_buffer_size as usize);
+            if input_buffer_size > payload_shared.len(){
+                payload_shared = make_shared_data(&payload_shm_f, input_buffer_size);
             }
         }
 
