@@ -157,6 +157,16 @@ pub extern "C" fn nyx_option_set_reload_mode(nyx_process: * mut NyxProcess, enab
 }
 
 #[no_mangle]
+pub extern "C" fn nyx_option_set_redqueen_mode(nyx_process: * mut NyxProcess, enable: bool) {
+    unsafe{
+        assert!(!nyx_process.is_null());
+        assert!((nyx_process as usize) % std::mem::align_of::<NyxProcess>() == 0);
+
+        (*nyx_process).option_set_redqueen_mode(enable);
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn nyx_option_set_timeout(nyx_process: * mut NyxProcess, timeout_sec: u8, timeout_usec: u32) {
     unsafe{
         assert!(!nyx_process.is_null());
@@ -218,6 +228,9 @@ pub extern "C" fn nyx_print_aux_buffer(nyx_process: * mut NyxProcess) {
         assert!(!nyx_process.is_null());
         assert!((nyx_process as usize) % std::mem::align_of::<NyxProcess>() == 0);
 
+        /* debug only */
+        //print!("{}", format!("{:#?}", (*nyx_process).process.aux.cap));
+
         print!("{}", format!("{:#?}", (*nyx_process).process.aux.result));
 
         match (*nyx_process).process.aux.result.exec_result_code {
@@ -240,5 +253,59 @@ pub extern "C" fn nyx_get_aux_string(nyx_process: * mut NyxProcess, buffer: *mut
         let len = std::cmp::min( (*nyx_process).process.aux.misc.len as usize, size as usize);
         std::ptr::copy((*nyx_process).process.aux.misc.data.as_mut_ptr(), buffer, len);
         len as u32
+    }
+}
+
+
+#[no_mangle]
+pub extern "C" fn nyx_check_redqueen_support(nyx_process: * mut NyxProcess) -> bool {
+
+    unsafe{
+        assert!(!nyx_process.is_null());
+        assert!((nyx_process as usize) % std::mem::align_of::<NyxProcess>() == 0);
+
+        if (*nyx_process).aux_buffer().cap.agent_redqueen == 1 {
+            /* redqueen is supported and data is provided as cmplog format */
+            true
+        }
+        else if (*nyx_process).aux_buffer().cap.agent_redqueen == 0 && (*nyx_process).aux_buffer().cap.agent_trace_bitmap == 0 {
+            /* redqueen is supported (via Intel PT) and data is provided as kAFL/RQ trace format */
+            unimplemented!("Todo");
+        }
+        else {
+            false
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn nyx_get_redqueen_buffer(nyx_process: * mut NyxProcess, buffer: *mut u8, size: u32) -> bool {
+
+    unsafe{
+        assert!(!nyx_process.is_null());
+        assert!((nyx_process as usize) % std::mem::align_of::<NyxProcess>() == 0);
+        assert!((buffer as usize) % std::mem::align_of::<u8>() == 0);
+
+        if (*nyx_process).aux_buffer().cap.agent_redqueen == 1 {
+            /* redqueen is supported and data is provided as cmplog format */
+            assert_eq!(size, CMPLOG_BUFFER_SIZE as u32);
+            let cmplog_buffer = (*nyx_process).redqueen_buffer();
+
+            match cmplog_buffer {
+                Some(x) => {
+                    println!("NEW REDQUEEN DATA!\n");
+                    std::ptr::copy(x.as_ptr(), buffer, CMPLOG_BUFFER_SIZE as usize);
+                    true
+                }
+                _ => false,
+            }
+        }
+        else if (*nyx_process).aux_buffer().cap.agent_redqueen == 0 && (*nyx_process).aux_buffer().cap.agent_trace_bitmap == 0 {
+            /* redqueen is supported (via Intel PT) and data is provided as kAFL/RQ trace format */
+            unimplemented!("Todo");
+        }
+        else {
+            false
+        }
     }
 }

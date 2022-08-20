@@ -10,10 +10,16 @@ use fuzz_runner::nyx::aux_buffer::{
     NYX_SANITIZER, NYX_STARVED
 };
 use fuzz_runner::nyx::qemu_process::QEMU_NYX_INPUT_BUFFER_HEADER;
+use fuzz_runner::nyx::aux_buffer::AuxBuffer;
 
 use std::fmt;
+use std::fs::File;
+use std::io::Read;
 
 pub mod ffi;
+
+//#[no_mangle]
+const CMPLOG_BUFFER_SIZE: u64 = 0x4080000;
 
 #[repr(C)]
 #[derive(Debug)]
@@ -235,6 +241,10 @@ impl NyxProcess {
     pub fn aux_buffer_as_mut_ptr(&self) -> *mut u8 {
         std::ptr::addr_of!(self.process.aux.header.magic) as *mut u8
     }
+
+    pub fn aux_buffer(&self) -> &AuxBuffer {
+        &self.process.aux
+    }
     
     pub fn input_buffer(&self) -> &[u8] {
         &self.process.payload[..self.input_buffer_size()]
@@ -353,5 +363,23 @@ impl NyxProcess {
     
     pub fn set_input(&mut self, buffer: &[u8], size: u32) {
         self.set_input_ptr(buffer.as_ptr(), size);
+    }
+
+    pub fn redqueen_buffer(&mut self) -> Option<Vec<u8>> {
+
+        let cmplog_file = format!("{}/dump/YO", self.process.params.workdir);
+
+        println!("Accessing {} ... ", cmplog_file);
+
+        let mut f = File::open(&cmplog_file).expect("cmplog file not found");
+        let metadata = std::fs::metadata(&cmplog_file).expect("unable to read metadata");
+
+        //assert_eq!(size as u64, CMPLOG_BUFFER_SIZE);
+        assert_eq!(metadata.len(), CMPLOG_BUFFER_SIZE);
+        let mut buffer = vec![0; metadata.len() as usize];
+
+        f.read(&mut buffer).expect("???");
+
+        Some(buffer)
     }
 }
